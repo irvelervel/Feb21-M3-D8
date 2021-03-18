@@ -48,7 +48,7 @@
     <div class="container text-center">
       <h1>STRIVE CRUD AGENDA</h1>
       <h2 class="mb-5">(backoffice)</h2>
-      <h2 class="my-5">Create a new event!!</h2>
+      <h2 class="my-5" id="subTitle"></h2>
       <div class="row">
         <div class="col col-md-6 offset-md-3">
           <form onsubmit="handleSubmit(event)">
@@ -59,6 +59,7 @@
                 type="text"
                 class="form-control"
                 placeholder="Write the event name here"
+                required
               />
             </div>
             <div class="form-group">
@@ -68,6 +69,7 @@
                 rows="4"
                 class="form-control"
                 placeholder="Write the event description here"
+                required
               ></textarea>
             </div>
             <div class="form-group">
@@ -81,7 +83,7 @@
             </div>
             <div class="form-group">
               <label for="time">Event time</label>
-              <input id="time" type="datetime-local" />
+              <input id="time" type="datetime-local" required />
             </div>
             <div class="form-group">
               <button class="btn btn-primary" type="submit">
@@ -108,8 +110,39 @@
     ></script>
 
     <script>
+      const url = "https://striveschool-api.herokuapp.com/api/agenda/";
+      let id; // undefined
+      // I made id global because I need to work with it several times in several functions
+
       window.onload = async () => {
         console.log("page has been rendered");
+        let urlParams = new URLSearchParams(window.location.search);
+        id = urlParams.get("id");
+        console.log("ID IS", id);
+        // right now: a) ID IS NULL b) ID IS AN EVENT ID
+        // document.getElementById("subTitle").innerText = id
+        //   ? "EDIT EVENT"
+        //   : "CREATE EVENT";
+        if (id) {
+          // this will be true everytime id is NOT NULL
+          document.getElementById("subTitle").innerText = "EDIT EVENT";
+          // here I will now fetch(url+id)
+          // and I will pre-populate my inputs in the form with the event details
+          // that won't be a new resource, I will just EDIT the existing event
+          let response = await fetch(url + id);
+          let eventDetails = await response.json();
+          console.log(eventDetails);
+
+          document.getElementById("name").value = eventDetails.name;
+          document.getElementById("description").value =
+            eventDetails.description;
+          document.getElementById("price").value = eventDetails.price;
+          document.getElementById("time").value = eventDetails.time.split(
+            "."
+          )[0];
+        } else {
+          document.getElementById("subTitle").innerText = "CREATE EVENT";
+        }
       };
 
       const handleSubmit = async (e) => {
@@ -118,8 +151,6 @@
         // about this specific event, which would instead refresh the page and insert some
         // querystrings into the address bar
         // console.log(e);
-
-        const url = "https://striveschool-api.herokuapp.com/api/agenda/";
 
         let myEvent = {
           name: document.getElementById("name").value,
@@ -130,26 +161,55 @@
 
         console.log(myEvent);
 
+        // FOR EDITING AN EXISTING RESOURCE:
+        // url + id --> https://striveschool-api.herokuapp.com/api/agenda/kasdkjshdajd
+        // PUT --> put will just EDIT AN EXISTING RESOURCE
+
+        let response;
+
         try {
-          let response = await fetch(url, {
-            method: "POST",
-            // POST method is used for CREATING NEW RESOURCES
-            body: JSON.stringify(myEvent),
-            // the body property is the payload of our call,
-            // so the content we want to carry!
-            // it must be a STRING
-            // so our myEvent object needs to be stringified
-            headers: {
-              "Content-Type": "application/json",
-            },
-            // the headers in an HTTP call are all about meta-information
-            // we need to pass the "Content-Type" to make our APIs aware
-            // that our payload is not any string, but it's an object stringified
-          });
+          if (id) {
+            // I will fall here if id is NOT NULL
+            response = await fetch(url + id, {
+              //https://striveschool-api.herokuapp.com/api/agenda/kasdkjshdajd
+              method: "PUT",
+              // POST method is used for CREATING NEW RESOURCES
+              body: JSON.stringify(myEvent),
+              // the body property is the payload of our call,
+              // so the content we want to carry!
+              // it must be a STRING
+              // so our myEvent object needs to be stringified
+              headers: {
+                "Content-Type": "application/json",
+              },
+              // the headers in an HTTP call are all about meta-information
+              // we need to pass the "Content-Type" to make our APIs aware
+              // that our payload is not any string, but it's an object stringified
+            });
+          } else {
+            response = await fetch(url, {
+              method: "POST",
+              // POST method is used for CREATING NEW RESOURCES
+              body: JSON.stringify(myEvent),
+              // the body property is the payload of our call,
+              // so the content we want to carry!
+              // it must be a STRING
+              // so our myEvent object needs to be stringified
+              headers: {
+                "Content-Type": "application/json",
+              },
+              // the headers in an HTTP call are all about meta-information
+              // we need to pass the "Content-Type" to make our APIs aware
+              // that our payload is not any string, but it's an object stringified
+            });
+          }
+
+          console.log(response);
 
           if (response.ok) {
             // probably everything went well
-            alert("Event was created successfully!");
+            alert(`Event was ${id ? "edited" : "created"} successfully!`);
+            window.location.assign("index.html");
           } else {
             alert("something went wrong :(");
             // probably something went wrong
@@ -158,6 +218,12 @@
           console.log(error);
         }
       };
+
+      // GET -> RETRIEVE ALL RESOURCES, GENERIC URL (url)
+      // GET -> RETRIEVE A SPECIFIC RESOURCE, RESOURCE URL (url + id)
+      // POST -> CREATING NEW RESOURCE, GENERIC URL (url)
+      // PUT -> EDITING EXISTING RESOURCE, RESOURCE URL (url + id)
+      // DELETE -> DELETING EXISTING RESOURCE, RESOURCE URL (url + id)
     </script>
 
     <!-- Option 2: Separate Popper and Bootstrap JS -->
